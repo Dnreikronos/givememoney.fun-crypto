@@ -18,9 +18,6 @@ contract StreamerDonations {
 
     mapping(address => uint256) public donationCount;
 
-    mapping(bytes32 => bool) public processedTxHashes;
-
-
     event DonationReceived (
         uint256 indexed donationId,
         address indexed streamer,
