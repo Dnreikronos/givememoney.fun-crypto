@@ -52,6 +52,7 @@ contract StreamerDonations {
         external 
         payable 
     {
+        require(streamer != address(0), "Invalid streamer");
         require(registeredStreamers[streamer], "Streamer not registered");
         require(msg.value >= MIN_DONATION_AMOUNT, "Below minimum");
         require(bytes(message).length <= MAX_MESSAGE_LENGTH, "Message too long");
