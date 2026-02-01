@@ -81,5 +81,12 @@ contract StreamerDonations {
             block.timestamp
         );
     }
-    
+
+    function getDonation(address streamer, uint256 donationId)
+    external
+    view
+    returns (Donation memory)  
+    {
+        return donations[streamer][donationId];
+    }
 }
