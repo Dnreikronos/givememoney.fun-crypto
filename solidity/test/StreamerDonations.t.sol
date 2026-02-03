@@ -51,7 +51,8 @@ contract StreamerDonationsTest is Test {
             donor,
             amount,
             message,
-            block.timestamp
+            block.timestamp,
+            address(0)
         );
         donations.donate{value: amount}(streamer, message);
 
