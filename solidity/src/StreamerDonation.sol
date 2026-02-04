@@ -4,6 +4,11 @@ pragma solidity ^0.8.20;
 import { IERC20 } from "forge-std/interfaces/IERC20.sol";
 
 contract StreamerDonations {
+    address public owner;
+
+    /// @notice Fee taken from each donation (5%)
+    uint256 public constant FEE_PERCENTAGE = 5;
+
     struct Donation {
         address donor;
         address streamer;
@@ -29,6 +34,10 @@ contract StreamerDonations {
     );
 
     event StreamerRegistered (address indexed streamer);
+
+    constructor() {
+        owner = msg.sender;
+    }
 
     uint256 public constant MAX_MESSAGE_LENGTH = 280;
 
@@ -71,9 +80,17 @@ contract StreamerDonations {
             token: address(0)
         });
 
-        // Transfer immediately to streamer
-        (bool success, ) = streamer.call{value: msg.value}("");
-        require(success, "Transfer failed");
+        uint256 fee = (msg.value * FEE_PERCENTAGE) / 100;
+        uint256 streamerAmount = msg.value - fee;
+
+        if (fee > 0) {
+            (bool feeSuccess, ) = owner.call{value: fee}("");
+            require(feeSuccess, "Fee transfer failed");
+        }
+        if (streamerAmount > 0) {
+            (bool success, ) = streamer.call{value: streamerAmount}("");
+            require(success, "Transfer failed");
+        }
 
         emit DonationReceived(
             donationId,
@@ -114,13 +131,20 @@ contract StreamerDonations {
             token: token
         });
 
-        // Transfer tokens from donor to streamer (handles USDT-style tokens that don't return bool)
-        uint256 streamerBalanceBefore = IERC20(token).balanceOf(streamer);
-        _safeTransferFrom(IERC20(token), msg.sender, streamer, amount);
-        require(
-            IERC20(token).balanceOf(streamer) == streamerBalanceBefore + amount,
-            "Transfer failed"
-        );
+        uint256 fee = (amount * FEE_PERCENTAGE) / 100;
+        uint256 streamerAmount = amount - fee;
+
+        if (fee > 0) {
+            _safeTransferFrom(IERC20(token), msg.sender, owner, fee);
+        }
+        if (streamerAmount > 0) {
+            uint256 streamerBalanceBefore = IERC20(token).balanceOf(streamer);
+            _safeTransferFrom(IERC20(token), msg.sender, streamer, streamerAmount);
+            require(
+                IERC20(token).balanceOf(streamer) == streamerBalanceBefore + streamerAmount,
+                "Transfer failed"
+            );
+        }
 
         emit DonationReceived(
             donationId,
