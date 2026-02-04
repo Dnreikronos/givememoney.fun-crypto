@@ -19,7 +19,6 @@ contract StreamerDonations {
         address token; // address(0) = native ETH
     }
 
-
     mapping(address => mapping(uint256 => Donation)) public donations;
 
     mapping(address => uint256) public donationCount;
@@ -34,7 +33,6 @@ contract StreamerDonations {
         address token
     );
 
-
     event StreamerRegistered (address indexed streamer);
 
     constructor() {
@@ -42,7 +40,7 @@ contract StreamerDonations {
     }
 
     uint256 public constant MAX_MESSAGE_LENGTH = 280;
-    
+
     uint256 public constant MIN_DONATION_AMOUNT = 0.001 ether;
     /// @notice Minimum for ERC-20 donations (e.g. 1 USDC/USDT with 6 decimals)
     uint256 public constant MIN_ERC20_DONATION_AMOUNT = 1e6;
