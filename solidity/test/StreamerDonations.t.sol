@@ -9,9 +9,13 @@ contract StreamerDonationsTest is Test {
 
     address public streamer;
     address public donor;
+    address public owner;
+
+    receive() external payable {}
 
     function setUp() public {
         donations = new StreamerDonations();
+        owner = donations.owner();
         streamer = makeAddr("streamer");
         donor = makeAddr("donor");
         vm.deal(donor, 10 ether);
@@ -51,11 +55,16 @@ contract StreamerDonationsTest is Test {
             donor,
             amount,
             message,
-            block.timestamp
+            block.timestamp,
+            address(0)
         );
+        uint256 fee = (amount * 5) / 100;
+        uint256 ownerBalanceBefore = address(owner).balance;
+
         donations.donate{value: amount}(streamer, message);
 
-        assertEq(address(streamer).balance, amount);
+        assertEq(address(streamer).balance, amount - fee);
+        assertEq(address(owner).balance, ownerBalanceBefore + fee);
         assertEq(donations.donationCount(streamer), 1);
 
         StreamerDonations.Donation memory d = donations.getDonation(streamer, 0);
@@ -70,6 +79,8 @@ contract StreamerDonationsTest is Test {
         vm.prank(streamer);
         donations.registerStreamer();
 
+        uint256 ownerBalanceBefore = address(owner).balance;
+
         vm.prank(donor);
         donations.donate{value: 0.01 ether}(streamer, "First");
 
@@ -79,7 +90,8 @@ contract StreamerDonationsTest is Test {
         assertEq(donations.donationCount(streamer), 2);
         assertEq(donations.getDonation(streamer, 0).amount, 0.01 ether);
         assertEq(donations.getDonation(streamer, 1).amount, 0.02 ether);
-        assertEq(address(streamer).balance, 0.03 ether);
+        assertEq(address(streamer).balance, 0.0285 ether); // 95% of 0.01 + 0.02
+        assertEq(address(owner).balance, ownerBalanceBefore + 0.0015 ether); // 5% fee
     }
 
     function test_RevertWhen_Donate_StreamerIsZero() public {
@@ -107,10 +119,13 @@ contract StreamerDonationsTest is Test {
         vm.prank(streamer);
         donations.registerStreamer();
 
+        uint256 ownerBalanceBefore = address(owner).balance;
+
         vm.prank(donor);
         donations.donate{value: 0.001 ether}(streamer, "min");
 
-        assertEq(address(streamer).balance, 0.001 ether);
+        assertEq(address(streamer).balance, 0.00095 ether); // 95%
+        assertEq(address(owner).balance, ownerBalanceBefore + 0.00005 ether); // 5% fee
     }
 
     function test_RevertWhen_Donate_MessageTooLong() public {
