@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.13;
+pragma solidity 0.8.20;
 
 import {Test} from "forge-std/Test.sol";
 import {StreamerDonations} from "../src/StreamerDonation.sol";
@@ -10,6 +10,16 @@ contract StreamerDonationsTest is Test {
     address public streamer;
     address public donor;
     address public owner;
+
+    event DonationReceived(
+        uint256 indexed donationId,
+        address indexed streamer,
+        address indexed donor,
+        uint256 amount,
+        string message,
+        uint256 timestamp,
+        address token
+    );
 
     receive() external payable {}
 
@@ -49,7 +59,7 @@ contract StreamerDonationsTest is Test {
 
         vm.prank(donor);
         vm.expectEmit(true, true, true, true);
-        emit StreamerDonations.DonationReceived(
+        emit DonationReceived(
             0,
             streamer,
             donor,
@@ -151,11 +161,57 @@ contract StreamerDonationsTest is Test {
 
     /* ---------- getDonation ---------- */
 
-    function test_GetDonation_ReturnsEmptyForNonExistent() public {
+    function test_GetDonation_ReturnsEmptyForNonExistent() public view {
         StreamerDonations.Donation memory d = donations.getDonation(streamer, 0);
         assertEq(d.donor, address(0));
         assertEq(d.streamer, address(0));
         assertEq(d.amount, 0);
         assertEq(d.donationId, 0);
+    }
+
+    /* ---------- pause / unpause ---------- */
+
+    function test_Pause_BlocksDonations() public {
+        vm.prank(streamer);
+        donations.registerStreamer();
+
+        donations.pause();
+
+        vm.prank(donor);
+        vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
+        donations.donate{value: 0.01 ether}(streamer, "hi");
+    }
+
+    function test_Unpause_AllowsDonationsAgain() public {
+        vm.prank(streamer);
+        donations.registerStreamer();
+
+        donations.pause();
+        donations.unpause();
+
+        vm.prank(donor);
+        donations.donate{value: 0.01 ether}(streamer, "resumed");
+
+        assertEq(donations.donationCount(streamer), 1);
+    }
+
+    function test_RevertWhen_NonOwnerPauses() public {
+        address attacker = makeAddr("attacker");
+        vm.prank(attacker);
+        vm.expectRevert(
+            abi.encodeWithSignature("OwnableUnauthorizedAccount(address)", attacker)
+        );
+        donations.pause();
+    }
+
+    function test_RevertWhen_NonOwnerUnpauses() public {
+        donations.pause();
+
+        address attacker = makeAddr("attacker");
+        vm.prank(attacker);
+        vm.expectRevert(
+            abi.encodeWithSignature("OwnableUnauthorizedAccount(address)", attacker)
+        );
+        donations.unpause();
     }
 }
