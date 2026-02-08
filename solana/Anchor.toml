@@ -8,14 +8,14 @@ skip-lint = false
 [programs.localnet]
 solana = "FMrnRTKyLZPFK5BgZB7aGA95RVa3pVyvCtbR8oMov2n9"
 
-[programs.testnet]
+[programs.devnet]
 solana = "FMrnRTKyLZPFK5BgZB7aGA95RVa3pVyvCtbR8oMov2n9"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "testnet"
+cluster = "https://solana-devnet.g.alchemy.com/v2/TMmF8KNbVDEHLZMXBU6Nz"
 wallet = ".keys/deployer.json"
 
 [scripts]
